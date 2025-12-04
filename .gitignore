@@ -1,0 +1,46 @@
+# Python bytecode
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.pytest_cache/
+
+# Virtual environment
+.venv/
+env/
+venv/
+
+# Environment variables
+.env
+.flaskenv
+
+# Database files
+*.sqlite3
+*.db
+*.db-journal
+
+# Editor/IDE specific files
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+
+# Logs and temporary files
+*.log
+tmp/
+logs/
+
+# Build artifacts
+dist/
+build/
+
+# Uploaded files
+uploads/
+
+# FastAPI specific
+# If you are generating client code or documentation, you might want to ignore those
+# For example, if you generate an OpenAPI client:
+# client/
+# docs/
