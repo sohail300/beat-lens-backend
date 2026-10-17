@@ -44,3 +44,7 @@ uploads/
 # For example, if you generate an OpenAPI client:
 # client/
 # docs/
+# Runtime data
+token.json
+songs/
+recordings/

@@ -4,7 +4,13 @@ from app.core.spectrogram import Peak
 from app.models.schemas import Couple
 
 
-# Constants matching Go implementation
+# Bump whenever the fingerprint format changes; songs fingerprinted with an older
+# version won't match new samples and must be re-indexed (`python -m app.cli reindex --outdated`).
+# 1: frequency stored as int(Hz / 10), which overflowed 9 bits above ~5.1 kHz
+# 2: frequency stored as the FFT bin index (0-511), which fits 9 bits exactly, and peak times use
+#    the exact frame duration, so a clip and the full song produce identical hashes
+ALGORITHM_VERSION = 2
+
 MAX_FREQ_BITS = 9
 MAX_DELTA_BITS = 14
 TARGET_ZONE_SIZE = 5
@@ -40,9 +46,9 @@ def create_address(anchor: Peak, target: Peak) -> int:
     - 9 bits represent target frequency
     - 14 bits represent time difference (delta time)
     """
-    anchor_freq_bin = int(anchor.freq / 10)  # Scale down to fit in 9 bits
-    target_freq_bin = int(target.freq / 10)
-    
+    anchor_freq_bin = anchor.bin
+    target_freq_bin = target.bin
+
     delta_ms_raw = int((target.time - anchor.time) * 1000)
     
     # Mask to fit within bit constraints

@@ -1,6 +1,8 @@
 """Pydantic models for data structures."""
 from typing import Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
+from app.config import MAX_UPLOAD_BYTES
 
 
 class Couple(BaseModel):
@@ -11,7 +13,7 @@ class Couple(BaseModel):
 
 class RecordData(BaseModel):
     """Audio recording data from client."""
-    audio: str  # Base64 encoded audio
+    audio: str = Field(max_length=MAX_UPLOAD_BYTES * 4 // 3 + 4)  # Base64 encoded 16-bit PCM
     duration: float
     channels: int
     sample_rate: int
@@ -35,6 +37,28 @@ class Song(BaseModel):
     youtube_id: str
 
 
+class SongInfo(BaseModel):
+    """A song in the library, as returned by the songs endpoints."""
+    id: int
+    title: str
+    artist: str
+    youtube_id: str
+    youtube_url: Optional[str] = None
+
+
+class SongDetail(SongInfo):
+    """A song plus its fingerprint statistics."""
+    fingerprint_count: int
+
+
+class SongPage(BaseModel):
+    """One page of the song list."""
+    items: list[SongInfo]
+    total: int
+    limit: int
+    offset: int
+
+
 class Track(BaseModel):
     """Spotify track information."""
     title: str
@@ -44,31 +68,7 @@ class Track(BaseModel):
     duration: int  # Duration in seconds
 
 
-class DownloadRequest(BaseModel):
-    """Request to download from Spotify."""
-    spotify_url: str
-
-
 class FindRequest(BaseModel):
-    """Request to find matches for audio."""
-    file_path: Optional[str] = None
-    fingerprint: Optional[dict[int, int]] = None  # Map of address -> anchor_time_ms
-
-
-class SaveRequest(BaseModel):
-    """Request to save a song."""
-    file_path: str
-    force: bool = False
-
-
-class EraseRequest(BaseModel):
-    """Request to erase database/files."""
-    db_only: bool = True
-    all: bool = False
-
-
-class DownloadStatus(BaseModel):
-    """Download status message."""
-    type: str  # "info", "success", "error"
-    message: str
+    """Request to find matches for a fingerprint computed by the client."""
+    fingerprint: dict[int, int]  # Map of address -> anchor_time_ms
 
