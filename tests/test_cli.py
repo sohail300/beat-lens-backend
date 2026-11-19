@@ -54,3 +54,33 @@ def test_erase_requires_confirmation(db, library_songs):
 def test_unknown_song_is_an_error(db, capsys):
     assert cli.main(["delete", "123"]) == 1
     assert "not found" in capsys.readouterr().err
+
+
+def test_parse_youtube_id():
+    from app.services.library import parse_youtube_id
+    vid = "dQw4w9WgXcQ"
+    for u in (vid, f"https://www.youtube.com/watch?v={vid}&t=5", f"https://youtu.be/{vid}?si=x",
+              f"https://music.youtube.com/watch?v={vid}", f"https://www.youtube.com/shorts/{vid}"):
+        assert parse_youtube_id(u) == vid
+    for bad in ("https://example.com/watch?v=" + vid, "https://www.youtube.com/watch?v=short", "nonsense"):
+        try:
+            parse_youtube_id(bad)
+            assert False, bad
+        except ValueError:
+            pass
+
+
+def test_add_youtube(db, workdir, monkeypatch):
+    from app.services import library
+    wav = write_wav(str(workdir / "yt.wav"), make_song(6, seconds=8))
+
+    def fake_dl(url, base):
+        import shutil
+        shutil.copyfile(wav, base + ".wav")
+        return base + ".wav"
+
+    monkeypatch.setattr(library, "download_yt_audio", fake_dl)
+    assert cli.main(["add-youtube", "https://youtu.be/dQw4w9WgXcQ", "--title", "YT", "--artist", "Tube"]) == 0
+    song = db.query(SongORM).one()
+    assert (song.title, song.artist, song.ytID) == ("YT", "Tube", "dQw4w9WgXcQ")
+    assert cli.main(["add-youtube", "dQw4w9WgXcQ", "--title", "Other", "--artist", "Tube"]) == 1  # same video

@@ -4,6 +4,7 @@ Beat Lens library manager. Adds and maintains songs directly in the database.
 Run from the backend folder:
     python -m app.cli add <spotify track/album/playlist URL>
     python -m app.cli add-file <path> [--title T] [--artist A] [--force]
+    python -m app.cli add-youtube <YouTube URL> --title T --artist A
     python -m app.cli list [--search Q] [--limit N] [--offset N]
     python -m app.cli show <id>
     python -m app.cli edit <id> [--title T] [--artist A] [--youtube-id Y]
@@ -47,6 +48,11 @@ def cmd_add_file(args, db):
             failed += 1
             print(f"Skipped {path}: {e}", file=sys.stderr)
     return 1 if failed else 0
+
+
+def cmd_add_youtube(args, db):
+    song = library.add_youtube(db, args.url, args.title, args.artist)
+    print(f"Added {_describe(song)}")
 
 
 def cmd_list(args, db):
@@ -126,6 +132,12 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--artist", help="Override the artist tag")
     p.add_argument("--force", action="store_true", help="Add even if no YouTube video is found")
     p.set_defaults(func=cmd_add_file)
+
+    p = sub.add_parser("add-youtube", help="Download and fingerprint a YouTube video (no Spotify needed)")
+    p.add_argument("url", help="YouTube video URL or 11-character video ID")
+    p.add_argument("--title", required=True)
+    p.add_argument("--artist", required=True)
+    p.set_defaults(func=cmd_add_youtube)
 
     p = sub.add_parser("list", help="List songs")
     p.add_argument("--search")

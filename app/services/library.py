@@ -5,9 +5,11 @@ These are only exposed through the command line (app/cli.py), never over HTTP.
 Errors are raised as ValueError (bad input / conflict) or LookupError (not found).
 """
 import os
+import re
 import shutil
 import uuid
 from typing import Optional
+from urllib.parse import parse_qs, urlparse
 
 from sqlalchemy.orm import Session
 
@@ -20,7 +22,8 @@ from app.services.db_service import (
     outdated_song_ids, replace_fingerprints, total_songs, update_song,
 )
 from app.services.spotify_downloader import dl_album, dl_playlist, dl_single_track, process_and_save_song
-from app.services.youtube import get_youtube_id
+from app.services.spotify import yt_id_exists
+from app.services.youtube import download_yt_audio, get_youtube_id
 from app.utils.helpers import create_folder, delete_file, move_file, song_file_path
 
 AUDIO_EXTENSIONS = (".wav", ".m4a")
@@ -78,6 +81,55 @@ def add_file(db: Session, path: str, title: Optional[str] = None, artist: Option
             move_file(wav_path, song_file_path(track_title, track_artist))
     finally:
         delete_file(work_path)
+        delete_file(wav_path)
+
+    return get_song_row(db, song_id)
+
+
+_YT_ID_RE = re.compile(r"^[A-Za-z0-9_-]{11}$")
+
+
+def parse_youtube_id(url: str) -> str:
+    """Extract the video ID from a YouTube URL (watch, youtu.be, shorts, embed) or a bare 11-character ID."""
+    url = url.strip()
+    if _YT_ID_RE.match(url):
+        return url
+    parsed = urlparse(url if "//" in url else "//" + url)
+    host = (parsed.hostname or "").lower()
+    candidate = None
+    if host == "youtu.be":
+        candidate = parsed.path.lstrip("/").split("/")[0]
+    elif host == "youtube.com" or host.endswith(".youtube.com"):
+        if parsed.path == "/watch":
+            candidate = parse_qs(parsed.query).get("v", [None])[0]
+        else:
+            parts = [p for p in parsed.path.split("/") if p]
+            if len(parts) >= 2 and parts[0] in ("shorts", "embed", "live", "v"):
+                candidate = parts[1]
+    if not candidate or not _YT_ID_RE.match(candidate):
+        raise ValueError(f"Not a valid YouTube video URL: {url}")
+    return candidate
+
+
+def add_youtube(db: Session, url: str, title: str, artist: str) -> SongORM:
+    """Download a specific YouTube video's audio and add it to the library under the given title and artist."""
+    yt_id = parse_youtube_id(url)
+    title, artist = title.strip(), artist.strip()
+    if not title or not artist:
+        raise ValueError("Title and artist can't be empty")
+    if yt_id_exists(yt_id, db):
+        raise ValueError(f"YouTube ID ({yt_id}) already belongs to another song")
+
+    create_folder(TMP_DIR)
+    base = os.path.join(TMP_DIR, uuid.uuid4().hex)
+    wav_path = base + ".wav"
+    try:
+        wav_path = download_yt_audio(f"https://www.youtube.com/watch?v={yt_id}", base)
+        song_id = process_and_save_song(wav_path, title, artist, yt_id, db)
+        if KEEP_AUDIO and os.path.exists(wav_path):
+            create_folder(SONGS_DIR)
+            move_file(wav_path, song_file_path(title, artist))
+    finally:
         delete_file(wav_path)
 
     return get_song_row(db, song_id)
