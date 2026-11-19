@@ -36,6 +36,8 @@ def _search(db, fingerprint: Dict[int, int]) -> dict:
         logger.error(f"Error finding matches: {e}")
         raise HTTPException(status_code=500, detail="Failed to search for matches")
 
+    top = ", ".join(f"{m.song_title}={m.score:.0f}" for m in matches[:3])
+    logger.info(f"Recognition: {len(fingerprint)} fingerprints; top scores: {top or 'none'}")
     return {
         "matches": [match.model_dump() for match in confident_match(matches)],
         "search_duration": search_duration,
