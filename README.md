@@ -71,7 +71,7 @@ Errors come back as `{"event": "error", "data": {"message": "..."}}`; the connec
 ### How matching decides
 
 Every sample shares a few hashes with unrelated songs by chance, so the best-scoring song is only
-reported if its score is at least `MIN_MATCH_SCORE` (10) **and** at least `MIN_MATCH_RATIO` (2.5×)
+reported if its score is at least `MIN_MATCH_SCORE` (10) **and** at least `MIN_MATCH_RATIO` (1.5×)
 the runner-up's. Tested on real music with clean, noisy (down to 0 dB SNR), low-bitrate Opus and
 phone-band clips, including unknown songs by the same composer as library songs:
 
@@ -80,6 +80,11 @@ phone-band clips, including unknown songs by the same composer as library songs:
 | 5 s | ~87% | 0 |
 | 10 s | ~93% | 0 |
 | 20 s | ~98% | 0 |
+
+The table above was measured with a 2.5× margin. The default was later lowered to 1.5× because a real
+microphone recording of a speaker scored 21 against a runner-up of 11 and was rejected. Chance matches
+(noise, a tone, reversed music) were never more than about 1.2× the runner-up, but false matches at 1.5×
+have not been measured as thoroughly; raise `MIN_MATCH_RATIO` if you see wrong results.
 
 **Clients should record 10-20 seconds.** Both thresholds can be tuned through environment variables.
 

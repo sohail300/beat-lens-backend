@@ -29,7 +29,7 @@ MAX_UPLOAD_BYTES = int(os.getenv("MAX_UPLOAD_MB", "20")) * 1024 * 1024
 # composer as library songs: no false matches; ~87% of 5 s, ~93% of 10 s and ~98% of 20 s clips found.
 MAX_CLIP_SECONDS = int(os.getenv("MAX_CLIP_SECONDS", "20"))
 MIN_MATCH_SCORE = float(os.getenv("MIN_MATCH_SCORE", "10"))
-MIN_MATCH_RATIO = float(os.getenv("MIN_MATCH_RATIO", "2.5"))
+MIN_MATCH_RATIO = float(os.getenv("MIN_MATCH_RATIO", "1.5"))
 # Abuse protection for recognition endpoints (per client IP, per server process; 0 disables)
 RATE_LIMIT_PER_MINUTE = int(os.getenv("RATE_LIMIT_PER_MINUTE", "30"))
 # How many samples may be fingerprinted at once per process (0 = one per CPU core)
