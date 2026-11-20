@@ -48,7 +48,7 @@ SENTRY_DSN = os.getenv("SENTRY_DSN", "")
 TMP_MAX_AGE_SECONDS = int(os.getenv("TMP_MAX_AGE_SECONDS", "3600"))
 PORT = int(os.getenv("PORT", "5000"))
 CORS_ORIGINS = [
-    origin.strip()
+    origin.strip().rstrip("/")  # browsers send origins without a trailing slash
     for origin in os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
     if origin.strip()
 ]
